@@ -198,8 +198,11 @@ impl App {
                 }
             }
 
-            // Keyboard cursor, visible while selecting with the keyboard.
-            if doc_focused && self.selection.is_some_and(|s| s.dragging) && row_index == self.cursor.0 {
+            // Keyboard cursor, visible while roaming or selecting with the keyboard.
+            if doc_focused
+                && (self.roam || self.selection.is_some_and(|s| s.dragging))
+                && row_index == self.cursor.0
+            {
                 let x = doc.x + (self.cursor.1.min(usize::from(doc.width).saturating_sub(1))) as u16;
                 buf.set_style(Rect { x, y: screen_y, width: 1, height: 1 }, Style::new().bg(CURSOR_BG));
             }
@@ -416,7 +419,8 @@ impl App {
             _ if self.pending.is_some() => "a looks good · c comment · d delete · esc clear ",
             Focus::Tree => "j/k · enter open · E send · t hide · q quit ",
             Focus::Rail => "j/k · e edit · x remove · tab · q quit ",
-            Focus::Document => "drag or v select · c comment · E send · tab · q quit ",
+            Focus::Document if self.roam => "hjkl move · v select · c comment · esc blocks · q quit ",
+            Focus::Document => "o move · v select · c comment · E send · tab · q quit ",
         };
         // The status must stay readable at any width, so the key help yields columns to it
         // (and is clipped) rather than the other way round.

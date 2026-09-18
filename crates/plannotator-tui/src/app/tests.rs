@@ -437,3 +437,29 @@ fn pasting_into_the_comment_box_keeps_newlines() {
     let placed = app.open.store.placed();
     assert_eq!(placed.last().expect("annotation").annotation.body, "pasted one\npasted two");
 }
+
+#[test]
+fn roaming_lets_a_selection_start_on_a_later_list_item() {
+    let source =
+        DocumentSource::new("- one\n- two\n- three\n".to_owned(), "list.md", true, Provenance::Stdin);
+    let mut app = App::open(source, 60, Box::new(Discard)).expect("app opens");
+    app.data_dir = scratch_data_dir();
+    draw(&mut app);
+    assert_eq!(app.open.doc.blocks.len(), 3, "each list item is its own block");
+    // `o` frees the cursor; `j` now moves a row (onto the second item) instead of a block
+    // from its first row, and `v` anchors the selection there.
+    app.handle_event(&key(KeyCode::Char('o'), KeyModifiers::NONE)).expect("o");
+    app.handle_event(&key(KeyCode::Char('j'), KeyModifiers::NONE)).expect("j");
+    assert_eq!(app.selected, 1);
+    app.handle_event(&key(KeyCode::Char('v'), KeyModifiers::NONE)).expect("v");
+    app.handle_event(&key(KeyCode::Char('$'), KeyModifiers::NONE)).expect("$");
+    app.handle_event(&key(KeyCode::Enter, KeyModifiers::NONE)).expect("enter");
+    let pending = app.pending.as_ref().expect("selection finished");
+    let quoted = app.open.doc.source.get(pending.range.clone()).expect("range in source");
+    assert!(quoted.contains("two") && !quoted.contains("one"), "quoted {quoted:?}");
+    // Back in block mode, `j` jumps blocks again.
+    app.handle_event(&key(KeyCode::Esc, KeyModifiers::NONE)).expect("clear");
+    app.handle_event(&key(KeyCode::Esc, KeyModifiers::NONE)).expect("leave roam");
+    app.handle_event(&key(KeyCode::Char('j'), KeyModifiers::NONE)).expect("j");
+    assert_eq!(app.selected, 2);
+}

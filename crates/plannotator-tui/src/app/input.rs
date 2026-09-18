@@ -169,6 +169,18 @@ impl App {
             self.visual_key(key);
             return Ok(());
         }
+        // Roaming (`o`): the cursor moves with nothing selected yet, so `v` can start
+        // anywhere. Other keys fall through to their block-mode meaning.
+        if self.roam && self.selection.is_none() {
+            if key.code == KeyCode::Esc {
+                self.roam = false;
+                self.status = None;
+                return Ok(());
+            }
+            if self.motion_key(key) {
+                return Ok(());
+            }
+        }
         match (key.code, key.modifiers) {
             (KeyCode::Esc, _) => {
                 if self.pending.is_some() || self.selection.is_some() {
@@ -181,6 +193,11 @@ impl App {
                 self.clear_selection();
                 self.selection = Some(Selection::start(self.cursor));
                 self.status = Some("visual: move to extend, enter to select, esc to cancel".into());
+            }
+            (KeyCode::Char('o'), _) => {
+                self.clear_selection();
+                self.roam = true;
+                self.status = Some("move: hjkl w b 0 $ · v select · esc back to blocks".into());
             }
             (KeyCode::Char('j') | KeyCode::Down, _) => self.select_block(self.selected + 1),
             (KeyCode::Char('k') | KeyCode::Up, _) => self.select_block(self.selected.saturating_sub(1)),
@@ -219,6 +236,18 @@ impl App {
         match key.code {
             KeyCode::Esc => self.clear_selection(),
             KeyCode::Enter | KeyCode::Char('v') => self.finish_selection(),
+            _ => {
+                self.motion_key(key);
+            }
+        }
+        if let Some(sel) = self.selection.as_mut() {
+            sel.set_head(self.cursor);
+        }
+    }
+
+    /// The cursor motions shared by visual and roaming modes. True when `key` was one.
+    fn motion_key(&mut self, key: KeyEvent) -> bool {
+        match key.code {
             KeyCode::Char('h') | KeyCode::Left => self.move_cursor(0, -1),
             KeyCode::Char('l') | KeyCode::Right => self.move_cursor(0, 1),
             KeyCode::Char('j') | KeyCode::Down => self.move_cursor(1, 0),
@@ -230,12 +259,10 @@ impl App {
                 self.cursor.1 =
                     self.open.layout.row(self.cursor.0).map_or(0, |r| r.cells.len().saturating_sub(1));
             }
-            _ => {}
-        }
-        if let Some(sel) = self.selection.as_mut() {
-            sel.set_head(self.cursor);
+            _ => return false,
         }
         self.ensure_cursor_visible();
+        true
     }
 
     /// Move the keyboard cursor by rows/columns, skipping gap rows and clamping to text.

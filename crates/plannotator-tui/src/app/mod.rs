@@ -124,6 +124,7 @@ impl Open {
 
 use self::compose::Compose;
 
+#[allow(clippy::struct_excessive_bools, reason = "independent toggles, none of them a state machine")]
 pub(crate) struct App {
     open: Open,
     /// Where annotations are stored and how this folder is named there.
@@ -153,6 +154,8 @@ pub(crate) struct App {
     pending: Option<Pending>,
     /// Keyboard cursor for visual selection, in document (row, col).
     cursor: (usize, usize),
+    /// `o`: the cursor moves by row without selecting, so `v` can start mid-block.
+    roam: bool,
     /// Index into the rail's placed annotations.
     rail_cursor: usize,
     mode: Mode,
@@ -229,6 +232,7 @@ impl App {
             selection: None,
             pending: None,
             cursor: (0, 0),
+            roam: false,
             rail_cursor: 0,
             mode: Mode::Browse,
             candidates: Vec::new(),
@@ -408,6 +412,7 @@ impl App {
             return;
         }
         self.clear_selection();
+        self.roam = false;
         self.selected = block.min(self.open.doc.blocks.len() - 1);
         if let Some(rendered) = self.open.layout.blocks.get(self.selected) {
             self.cursor = (rendered.first_row, 0);
