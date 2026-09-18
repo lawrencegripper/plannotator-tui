@@ -75,7 +75,7 @@ dimmed. The keys also work without opening the menu.
 | Where | Keys |
 |---|---|
 | anywhere | `Tab` cycle tree · document · notes; `E` send; `t` tree; `r` reload; `q` quit |
-| document | `j`/`k` block; `c` comment on the block; `x` clear its annotations; `v` select with `hjkl` `w` `b` `0` `$`; `o` move the cursor with those keys first, then `v` to select from there |
+| document | `j`/`k` block; `c` comment on the block; `x` clear its annotations; `v` select with `hjkl` `w` `b` `0` `$`; `i` move the cursor with those keys first, then `v` to select from there |
 | toolbar | `a` looks good · `c` comment · `d` delete · `Esc` |
 | notes | `j`/`k`; `e` edit; `x` remove; click a bubble |
 | file/folder review | `E` send new · `m` review menu (`R` resend all · `F` finish review · `U` undo · `H` archive) |

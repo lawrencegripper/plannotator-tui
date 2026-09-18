@@ -367,7 +367,7 @@ looked up in whichever table holds it. Verified against the `beta` source
 ## 15. The cursor can roam before selecting (2026-09-18)
 
 Keyboard selection always anchored at the selected block's first row, because block mode
-had no row movement: commenting on the seventh bullet of a list meant the mouse. `o` now
+had no row movement: commenting on the seventh bullet of a list meant the mouse. `i` now
 enters roaming: the visual-mode motions move the cursor with nothing selected, `v` anchors
 there, `Esc` (or any block key) returns to block mode.
 

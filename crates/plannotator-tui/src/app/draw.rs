@@ -420,7 +420,7 @@ impl App {
             Focus::Tree => "j/k · enter open · E send · t hide · q quit ",
             Focus::Rail => "j/k · e edit · x remove · tab · q quit ",
             Focus::Document if self.roam => "hjkl move · v select · c comment · esc blocks · q quit ",
-            Focus::Document => "o move · v select · c comment · E send · tab · q quit ",
+            Focus::Document => "i move · v select · c comment · E send · tab · q quit ",
         };
         // The status must stay readable at any width, so the key help yields columns to it
         // (and is clipped) rather than the other way round.

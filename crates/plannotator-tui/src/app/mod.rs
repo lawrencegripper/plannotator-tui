@@ -154,7 +154,7 @@ pub(crate) struct App {
     pending: Option<Pending>,
     /// Keyboard cursor for visual selection, in document (row, col).
     cursor: (usize, usize),
-    /// `o`: the cursor moves by row without selecting, so `v` can start mid-block.
+    /// `i`: the cursor moves by row without selecting, so `v` can start mid-block.
     roam: bool,
     /// Index into the rail's placed annotations.
     rail_cursor: usize,

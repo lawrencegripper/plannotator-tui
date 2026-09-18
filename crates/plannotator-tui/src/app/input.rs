@@ -169,7 +169,7 @@ impl App {
             self.visual_key(key);
             return Ok(());
         }
-        // Roaming (`o`): the cursor moves with nothing selected yet, so `v` can start
+        // Roaming (`i`): the cursor moves with nothing selected yet, so `v` can start
         // anywhere. Other keys fall through to their block-mode meaning.
         if self.roam && self.selection.is_none() {
             if key.code == KeyCode::Esc {
@@ -194,7 +194,7 @@ impl App {
                 self.selection = Some(Selection::start(self.cursor));
                 self.status = Some("visual: move to extend, enter to select, esc to cancel".into());
             }
-            (KeyCode::Char('o'), _) => {
+            (KeyCode::Char('i'), _) => {
                 self.clear_selection();
                 self.roam = true;
                 self.status = Some("move: hjkl w b 0 $ · v select · esc back to blocks".into());

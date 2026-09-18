@@ -456,7 +456,7 @@ fn roaming_moves_by_row_so_a_selection_can_start_mid_block() {
     assert_eq!((app.selected, app.cursor.0), (1, 3), "block mode: j skips to the list");
     app.handle_event(&key(KeyCode::Char('g'), KeyModifiers::NONE)).expect("g");
 
-    app.handle_event(&key(KeyCode::Char('o'), KeyModifiers::NONE)).expect("o");
+    app.handle_event(&key(KeyCode::Char('i'), KeyModifiers::NONE)).expect("i");
     app.handle_event(&j).expect("roam j");
     assert_eq!((app.selected, app.cursor.0), (0, 1), "roaming: j moves one row, same block");
     app.handle_event(&key(KeyCode::Char('v'), KeyModifiers::NONE)).expect("v");
@@ -476,7 +476,7 @@ fn roaming_moves_by_row_so_a_selection_can_start_mid_block() {
 fn a_block_key_ends_roaming() {
     let mut app = app(Box::new(Discard));
     draw(&mut app);
-    app.handle_event(&key(KeyCode::Char('o'), KeyModifiers::NONE)).expect("o");
+    app.handle_event(&key(KeyCode::Char('i'), KeyModifiers::NONE)).expect("i");
     assert!(app.roam);
     app.handle_event(&key(KeyCode::Char('G'), KeyModifiers::NONE)).expect("G");
     assert!(!app.roam, "jumping to a block puts the cursor back on its first row");
