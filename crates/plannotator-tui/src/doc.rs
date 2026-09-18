@@ -79,7 +79,7 @@ fn kind_of(tag: &Tag<'_>) -> BlockKind {
     match tag {
         Tag::Heading { .. } => BlockKind::Heading,
         Tag::Paragraph => BlockKind::Paragraph,
-        Tag::List(_) => BlockKind::List,
+        Tag::List(_) | Tag::Item => BlockKind::List,
         Tag::CodeBlock(_) => BlockKind::CodeBlock,
         Tag::BlockQuote(_) => BlockKind::BlockQuote,
         Tag::Table(_) => BlockKind::Table,
@@ -93,21 +93,27 @@ fn kind_of(tag: &Tag<'_>) -> BlockKind {
 fn split_blocks(source: &str) -> Vec<Block> {
     let mut blocks = Vec::new();
     let mut depth = 0usize;
-    let mut open: Option<(usize, BlockKind)> = None;
+    // The block being read: where it starts, what it is, and the depth its End lands on.
+    let mut open: Option<(usize, BlockKind, usize)> = None;
 
     for (event, range) in Parser::new_ext(source, parse_options()).into_offset_iter() {
         match event {
             Event::Start(tag) => {
-                if depth == 0 {
-                    open = Some((range.start, kind_of(&tag)));
+                // A top-level list is not a block; each of its items is, so a bullet can be
+                // selected on its own. Whatever an item contains stays with that item.
+                let opens = match depth {
+                    0 => !matches!(tag, Tag::List(_)),
+                    1 => matches!(tag, Tag::Item),
+                    _ => false,
+                };
+                if opens {
+                    open = Some((range.start, kind_of(&tag), depth));
                 }
                 depth += 1;
             }
             Event::End(_) => {
                 depth = depth.saturating_sub(1);
-                if depth == 0
-                    && let Some((start, kind)) = open.take()
-                {
+                if let Some((start, kind, _)) = open.take_if(|(_, _, closes_at)| *closes_at == depth) {
                     blocks.push(Block { range: start..range.end, kind });
                 }
             }
@@ -144,19 +150,30 @@ mod tests {
                 BlockKind::Heading,
                 BlockKind::Paragraph,
                 BlockKind::List,
+                BlockKind::List,
                 BlockKind::CodeBlock,
                 BlockKind::Rule
             ]
         );
         assert_eq!(doc.block_text(0), "# Title");
         assert_eq!(doc.block_text(1), "Para one\nstill one.");
-        assert_eq!(doc.block_text(3), "```rs\nfn x() {}\n```");
+        assert_eq!(doc.block_text(2), "- a");
+        assert_eq!(doc.block_text(3), "- b");
+        assert_eq!(doc.block_text(4), "```rs\nfn x() {}\n```");
     }
 
     #[test]
-    fn front_matter_is_dropped_and_nested_lists_stay_one_block() {
+    fn front_matter_is_dropped_and_a_nested_list_stays_with_its_item() {
         let doc = Document::parse("---\ntitle: X\n---\n\n- a\n  - nested\n- b\n".to_owned());
-        assert_eq!(doc.blocks.len(), 1);
-        assert_eq!(doc.blocks.first().map(|b| b.kind), Some(BlockKind::List));
+        let texts: Vec<_> = (0..doc.blocks.len()).map(|i| doc.block_text(i)).collect();
+        assert_eq!(texts, ["- a\n  - nested", "- b"]);
+        assert!(doc.blocks.iter().all(|b| b.kind == BlockKind::List));
+    }
+
+    #[test]
+    fn list_items_are_blocks_whether_tight_loose_or_numbered() {
+        let doc = Document::parse("- a\n\n- b\n\n1. one\n2. two\n\npara\n".to_owned());
+        let texts: Vec<_> = (0..doc.blocks.len()).map(|i| doc.block_text(i)).collect();
+        assert_eq!(texts, ["- a", "- b", "1. one", "2. two", "para"]);
     }
 }
