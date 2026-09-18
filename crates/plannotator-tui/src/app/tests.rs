@@ -439,27 +439,46 @@ fn pasting_into_the_comment_box_keeps_newlines() {
 }
 
 #[test]
-fn roaming_lets_a_selection_start_on_a_later_list_item() {
-    let source =
-        DocumentSource::new("- one\n- two\n- three\n".to_owned(), "list.md", true, Provenance::Stdin);
+fn roaming_moves_by_row_so_a_selection_can_start_mid_block() {
+    // A paragraph with a hard break (two rows), then a list: in block mode `j` from the top lands on "- one",
+    // roaming lands on "second line" of the same block.
+    let source = DocumentSource::new(
+        "first line\\\nsecond line\n\n- one\n- two\n".to_owned(),
+        "doc.md",
+        true,
+        Provenance::Stdin,
+    );
     let mut app = App::open(source, 60, Box::new(Discard)).expect("app opens");
     app.data_dir = scratch_data_dir();
     draw(&mut app);
-    assert_eq!(app.open.doc.blocks.len(), 3, "each list item is its own block");
-    // `o` frees the cursor; `j` now moves a row (onto the second item) instead of a block
-    // from its first row, and `v` anchors the selection there.
+    let j = key(KeyCode::Char('j'), KeyModifiers::NONE);
+    app.handle_event(&j).expect("block j");
+    assert_eq!((app.selected, app.cursor.0), (1, 3), "block mode: j skips to the list");
+    app.handle_event(&key(KeyCode::Char('g'), KeyModifiers::NONE)).expect("g");
+
     app.handle_event(&key(KeyCode::Char('o'), KeyModifiers::NONE)).expect("o");
-    app.handle_event(&key(KeyCode::Char('j'), KeyModifiers::NONE)).expect("j");
-    assert_eq!(app.selected, 1);
+    app.handle_event(&j).expect("roam j");
+    assert_eq!((app.selected, app.cursor.0), (0, 1), "roaming: j moves one row, same block");
     app.handle_event(&key(KeyCode::Char('v'), KeyModifiers::NONE)).expect("v");
     app.handle_event(&key(KeyCode::Char('$'), KeyModifiers::NONE)).expect("$");
     app.handle_event(&key(KeyCode::Enter, KeyModifiers::NONE)).expect("enter");
     let pending = app.pending.as_ref().expect("selection finished");
-    let quoted = app.open.doc.source.get(pending.range.clone()).expect("range in source");
-    assert!(quoted.contains("two") && !quoted.contains("one"), "quoted {quoted:?}");
-    // Back in block mode, `j` jumps blocks again.
+    assert_eq!(app.open.doc.source.get(pending.range.clone()), Some("second line"));
+
+    // Esc clears the selection, a second Esc leaves roaming, and j jumps blocks again.
     app.handle_event(&key(KeyCode::Esc, KeyModifiers::NONE)).expect("clear");
     app.handle_event(&key(KeyCode::Esc, KeyModifiers::NONE)).expect("leave roam");
-    app.handle_event(&key(KeyCode::Char('j'), KeyModifiers::NONE)).expect("j");
-    assert_eq!(app.selected, 2);
+    app.handle_event(&j).expect("block j");
+    assert_eq!(app.selected, 1);
+}
+
+#[test]
+fn a_block_key_ends_roaming() {
+    let mut app = app(Box::new(Discard));
+    draw(&mut app);
+    app.handle_event(&key(KeyCode::Char('o'), KeyModifiers::NONE)).expect("o");
+    assert!(app.roam);
+    app.handle_event(&key(KeyCode::Char('G'), KeyModifiers::NONE)).expect("G");
+    assert!(!app.roam, "jumping to a block puts the cursor back on its first row");
+    assert_eq!(app.cursor, (app.open.layout.blocks[app.selected].first_row, 0));
 }
