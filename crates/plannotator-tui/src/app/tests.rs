@@ -473,6 +473,25 @@ fn roaming_moves_by_row_so_a_selection_can_start_mid_block() {
 }
 
 #[test]
+fn c_while_roaming_comments_on_the_cursor_line_not_the_block() {
+    let source = DocumentSource::new(
+        "first line\\\nsecond line\n\n- one\n".to_owned(),
+        "doc.md",
+        true,
+        Provenance::Stdin,
+    );
+    let mut app = App::open(source, 60, Box::new(Discard)).expect("app opens");
+    app.data_dir = scratch_data_dir();
+    draw(&mut app);
+    app.handle_event(&key(KeyCode::Char('i'), KeyModifiers::NONE)).expect("i");
+    app.handle_event(&key(KeyCode::Char('j'), KeyModifiers::NONE)).expect("roam j");
+    app.handle_event(&key(KeyCode::Char('l'), KeyModifiers::NONE)).expect("roam l");
+    app.handle_event(&key(KeyCode::Char('c'), KeyModifiers::NONE)).expect("comment");
+    let pending = app.pending.as_ref().expect("line pending");
+    assert_eq!(app.open.doc.source.get(pending.range.clone()), Some("second line"));
+}
+
+#[test]
 fn a_block_key_ends_roaming() {
     let mut app = app(Box::new(Discard));
     draw(&mut app);

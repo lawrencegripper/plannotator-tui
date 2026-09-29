@@ -369,7 +369,9 @@ looked up in whichever table holds it. Verified against the `beta` source
 Keyboard selection always anchored at the selected block's first row, because block mode
 had no row movement: commenting on the seventh bullet of a list meant the mouse. `i` now
 enters roaming: the visual-mode motions move the cursor with nothing selected, `v` anchors
-there, `Esc` (or any block key) returns to block mode.
+there, `Esc` (or any block key) returns to block mode. `c` while roaming with nothing
+selected comments on the cursor's rendered row, so one line needs `i` `j` `c` rather than
+`i` `j` `v` `$` `Enter` `c`.
 
 Two alternatives were rejected. A vim-style `o` that swaps anchor and head inside visual
 mode still forces the selection to start at the top and be shrunk from below. Splitting a

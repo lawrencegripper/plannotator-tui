@@ -1,5 +1,7 @@
 //! Keyboard and mouse handling.
 
+use std::ops::Range;
+
 use anyhow::Result;
 use plannotator_tui_schema::Kind;
 use ratatui::crossterm::event::{
@@ -216,6 +218,12 @@ impl App {
             (KeyCode::Char('G') | KeyCode::End, _) => {
                 self.select_block(self.open.doc.blocks.len().saturating_sub(1));
             }
+            (KeyCode::Char('c') | KeyCode::Enter, _) if self.roam => {
+                if let Some(range) = self.row_range(self.cursor.0) {
+                    self.pending = Some(Pending { range, at: (self.cursor.0, 0) });
+                    self.act(Kind::Comment)?;
+                }
+            }
             (KeyCode::Char('c') | KeyCode::Enter, _) => {
                 // No selection: comment on the whole selected block.
                 if let (Some(block), Some(rendered)) =
@@ -256,7 +264,7 @@ impl App {
     fn start_roaming(&mut self) {
         self.clear_selection();
         self.roam = true;
-        self.status = Some("move: hjkl w b 0 $ · v select · esc back to blocks".into());
+        self.status = Some("move: hjkl w b 0 $ · v select · c comment line · esc back to blocks".into());
     }
 
     /// The cursor motions shared by visual and roaming modes. True when `key` was one.
@@ -277,6 +285,16 @@ impl App {
         }
         self.ensure_cursor_visible();
         true
+    }
+
+    /// The source range under a rendered row's text.
+    fn row_range(&self, row: usize) -> Option<Range<usize>> {
+        let cells = &self.open.layout.row(row)?.cells;
+        let lo = *cells.iter().flatten().min()?;
+        let hi = *cells.iter().flatten().max()?;
+        let source = &self.open.doc.source;
+        let end_char = source.get(hi..).and_then(|s| s.chars().next()).map_or(1, char::len_utf8);
+        Some(lo..hi + end_char)
     }
 
     /// Move the keyboard cursor by rows/columns, skipping gap rows and clamping to text.
